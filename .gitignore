@@ -7,6 +7,7 @@
 venv/
 ENV/
 
-#
+# private app data
 session/*
+database/*
 

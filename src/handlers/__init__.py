@@ -1,28 +1,30 @@
-from telethon import events
+import logging
+from pyrogram import filters
+from pyrogram.handlers import MessageHandler
 
-from .start_handler import register_start_handler
-from .about_handler import register_about_handler
-from .help_handler import register_help_handler
-from .parse_handler import register_parse_handler
-from .parse_stats_handler import register_parse_stats_handler
+from .start_handler import start_handler
+from .help_handler import help_handler
+from .parse_handler import parse_handler
+from .echo_handler import echo_handler
+
+logger = logging.getLogger(__name__)
+
+def non_command_filter(_, __, m):
+    return (
+        m.text and
+        not m.text.startswith('/') and
+        not m.text.startswith('!') and
+        not m.text.startswith('.')
+    )
+
+non_command = filters.create(non_command_filter)
 
 def register_handlers(bot):
-    register_start_handler(bot)
-    register_about_handler(bot)
-    register_help_handler(bot)
-    register_parse_handler(bot)
-    register_parse_stats_handler(bot)
+    logger.info('Starting handlers registration...')
 
-    # Обработчик всех текстовых сообщений (эхо)
-    @bot.on(events.NewMessage)
-    async def echo_handler(event):
-        # Пропускаем команды
-        if (hasattr(event, 'message') and
-                hasattr(event.message, 'text') and
-                event.message.text and
-                event.message.text.startswith('/')):
-            return
+    bot.add_handler(MessageHandler(start_handler, filters.command("start")))
+    bot.add_handler(MessageHandler(help_handler, filters.command("help")))
+    bot.add_handler(MessageHandler(parse_handler, filters.command("parse")))
+    bot.add_handler(MessageHandler(echo_handler, non_command))
 
-        # Отвечаем тем же текстом
-        if hasattr(event, 'message') and hasattr(event.message, 'text'):
-            await event.respond(f'Вы сказали: {event.message.text}')
+    logger.info('Handlers registered!')
