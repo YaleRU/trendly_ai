@@ -10,5 +10,3 @@ ENV/
 #
 session/*
 
-# Logs
-src/bot.session
