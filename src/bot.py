@@ -2,6 +2,7 @@
 # Позволяет настроить источники, интервал, присылает дайджест
 
 import logging
+import asyncio
 from pyrogram import Client
 from config import config
 from handlers import register_handlers
@@ -12,25 +13,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-bot = Client(
-    config.BOT_SESSION_NAME,
-    config.API_ID,
-    config.API_HASH,
-    bot_token=config.BOT_TOKEN,
-    workdir=config.SESSION_DIR,
-)
 
-# Запуск бота
-if __name__ == "__main__":
+def startBot():
+    bot = Client(
+        config.BOT_SESSION_NAME,
+        config.API_ID,
+        config.API_HASH,
+        bot_token=config.BOT_TOKEN,
+        workdir=config.SESSION_DIR,
+    )
+
     register_handlers(bot)
     logger.info("Бот запущен...")
 
     bot.run()
-#
-# async def main():
-#     async with bot:
-#         register_handlers(bot)
-#     print("Бот запущен...")
-#
-#
-# bot.run(main())
+
+
+# Запуск бота
+if __name__ == "__main__":
+    startBot()

@@ -5,4 +5,4 @@ async def echo_handler(client: Client, message: Message):
     # Дополнительная проверка на случай, если фильтр не сработает
     if message.text and message.text.startswith('/'):
         return
-    await message.reply_text(f"Вы сказали: {message.text}")
+    await message.reply_text(f"Вы сказали: {message.text}", quote=True)

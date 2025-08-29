@@ -47,4 +47,5 @@ class Config:
     # OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", 500))
     # OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.7))
 
+
 config = Config()

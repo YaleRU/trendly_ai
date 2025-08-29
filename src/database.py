@@ -5,6 +5,7 @@ from config import config
 
 logger = logging.getLogger(__name__)
 
+
 class Database:
     def __init__(self, db_path):
         logger.info('Initializing database facade...')
@@ -70,6 +71,7 @@ class Database:
     def get_connection(self):
         """Возвращает connection к базе данных."""
         return sqlite3.connect(self.db_path)
+
 
 # Создаем глобальный экземпляр БД
 db = Database(os.path.join(config.DATABASE_DIR, config.DATABASE_NAME))
