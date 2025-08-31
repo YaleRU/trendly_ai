@@ -17,3 +17,4 @@ def get_welcome_text(user):
             f"Я бот для создания персональных дайджестов новостей.\n"
             f"Для справки нажмите /{CommandAlias.help.value}.\n"
             f"Добавь источники командой /{CommandAlias.add_source.value}.")
+

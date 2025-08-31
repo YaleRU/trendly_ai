@@ -1,102 +1,103 @@
-# Клиент, который читает новости из телеграм каналов и отравляет их в БД.
+import logging
+from datetime import datetime, timedelta
+from pyrogram import Client
+from pyrogram.types import Message
+from pyrogram.errors import ChannelInvalid, ChannelPrivate, UsernameNotOccupied
+
+from src.database import db, SourceType
+from src.utils import date as date_utils
+
+logger = logging.getLogger(__name__)
 
 
+def get_default_last_checked() -> datetime:
+    return date_utils.now_utc() - timedelta(hours=24)
 
-# import os
-# import re
-# from pyrogram import Client, filters
-# from pyrogram.types import Message
-# from config import API_ID, API_HASH, CLIENT_NUMBER, CLIENT_PASSWORD, BOT_TOKEN
-#
-#
-#
-# # Обработчик команды /parse
-# @app.on_message(filters.command("parse"))
-# async def parse_handler(client: Client, message: Message):
-#     # Проверяем, есть ли текст команды
-#     if not message.text or len(message.text.split()) < 2:
-#         await message.reply_text("""
-# Использование команды /parse:
-# /parse <username_канала> [количество_сообщений]
-#
-# Примеры:
-# /parse @python_telethon 10
-# /parse news_channel 5
-# """)
-#         return
-#
-#     try:
-#         # Извлекаем параметры из команды
-#         parts = message.text.split()
-#         channel_username = parts[1]
-#         limit = int(parts[2]) if len(parts) > 2 else 10
-#
-#         # Убираем @ из username если есть
-#         if channel_username.startswith('@'):
-#             channel_username = channel_username[1:]
-#
-#         # Проверяем лимит
-#         if limit > 50:
-#             await message.reply_text("Максимальное количество сообщений для парсинга - 50")
-#             return
-#
-#         # Уведомляем о начале парсинга
-#         progress_msg = await message.reply_text(f"Начинаю парсинг {limit} сообщений из {channel_username}...")
-#
-#         # Получаем информацию о канале
-#         try:
-#             chat = await client.get_chat(channel_username)
-#         except Exception as e:
-#             await message.reply_text(f"Не могу найти канал {channel_username}. Ошибка: {str(e)}")
-#             return
-#
-#         # Собираем сообщения
-#         messages = []
-#         async for msg in client.get_chat_history(chat.id, limit=limit):
-#             messages.append(msg)
-#
-#         if not messages:
-#             await message.reply_text("Не удалось получить сообщения из канала")
-#             return
-#
-#         # Формируем результат
-#         result = f"Последние {len(messages)} сообщений из {chat.title}:\n\n"
-#
-#         for i, msg in enumerate(messages, 1):
-#             if msg.text:
-#                 # Очищаем текст от лишних переносов
-#                 text = re.sub(r'\n+', ' ', msg.text)
-#                 # Обрезаем длинные сообщения
-#                 text = text[:200] + "..." if len(text) > 200 else text
-#                 result += f"{i}. {text}\n\n"
-#             elif msg.caption:
-#                 # Если есть подпись к медиа
-#                 text = re.sub(r'\n+', ' ', msg.caption)
-#                 text = text[:200] + "..." if len(text) > 200 else text
-#                 result += f"{i}. [Медиа] {text}\n\n"
-#             else:
-#                 result += f"{i}. [Медиа-сообщение]\n\n"
-#
-#         # Отправляем результат
-#         if len(result) > 4096:
-#             # Разбиваем на части если сообщение слишком длинное
-#             parts = [result[i:i + 4096] for i in range(0, len(result), 4096)]
-#             for part in parts:
-#                 await message.reply_text(part)
-#         else:
-#             await message.reply_text(result)
-#
-#         # Удаляем сообщение о прогрессе
-#         await progress_msg.delete()
-#
-#     except Exception as e:
-#         error_msg = f"Ошибка при парсинге: {str(e)}"
-#         await message.reply_text(error_msg)
-#
-#
-#
-#
-# # Запуск бота
-# if __name__ == "__main__":
-#     print("Бот запущен...")
-#     app.run()
+
+async def check_telegram_sources(user_client: Client, bot: Client):
+    """Проверяет Telegram-каналы на наличие новых сообщений"""
+    user_sources = db.get_active_sources(SourceType.Telegram)
+
+    if not user_sources:
+        return
+
+    async def notify_user_about_forbidden_chanel(target, e):
+        logger.warning(f"Не удалось получить доступ к каналу с id={target}.\n"
+                       f"Убедитесь, что бот имеет права на чтение этого канала.\n", e)
+
+    for source in user_sources:
+
+        # Пропускаем источники, которые уже в процессе обновления
+        if source['is_updating'] != 0:
+            continue
+
+        source_id = source['id']
+        source_target = source['target']
+        db.start_source_updating(source_id)
+
+        try:
+            # Получаем entity (канал/чат)
+            entity = await user_client.get_chat(source_target)
+
+            # Определяем время последней проверки и статью
+
+            # Преобразуем строку из БД в объект datetime
+            # ОНА УЖЕ В UTC!
+            last_checked_time = date_utils.as_utc(date_utils.get_dt_from_datestr(source['last_checked_time'])) if \
+                source['last_checked_time'] else get_default_last_checked()
+
+            logger.info(
+                f"last_checked_time of {source_target}: {date_utils.get_formatted_datestr(last_checked_time)}")
+
+            messages = []
+            async for message in user_client.get_chat_history(
+                    entity.id
+            ):
+                if date_utils.to_utc(message.date) > last_checked_time:
+                    if isinstance(message, Message) and message.text and not message.service:
+                        messages.append(message)
+                    else:
+                        continue
+                else:
+                    break
+
+            new_articles_count = 0
+            messages = reversed(messages)
+
+            for message in messages:
+
+                # Формируем URL к сообщению
+                if entity.username:
+                    message_url = f"https://t.me/{entity.username}/{message.id}"
+                else:
+                    message_url = f"tg://openmessage?chat_id={entity.id}&message_id={message.id}"
+
+                message_date = date_utils.to_utc(message.date)
+                article_data = {
+                    'source_id': source_id,
+                    'id_in_source': str(message.id),
+                    'url': message_url,
+                    'title': message.text[:100] + "..." if len(message.text) > 100 else message.text,
+                    'content': message.text,
+                    'published_at': message_date,
+                }
+
+                # Сохраняем статью и обновляем время проверки
+                added_article_id = db.add_article(article_data)
+                if added_article_id is not None:
+                    new_articles_count += 1
+                    db.update_source_last_checked(source_id, added_article_id, message_date)
+
+            db.update_source_last_checked(source_id, last_checked_time=date_utils.now_utc())
+
+            logger.info(f"Найдено {new_articles_count} новых сообщений в канале {entity.title}")
+            db.stop_source_updating(source_id)
+        except Exception as e:
+            # Если ошибка связана с правами доступа
+            if isinstance(e, (ChannelInvalid, ChannelPrivate, UsernameNotOccupied)) or "FORBIDDEN" in str(
+                    e) or "права" in str(e).lower():
+                await notify_user_about_forbidden_chanel(source_target, e)
+            else:
+                logger.error(f"Ошибка при проверке Telegram-канала {source_target}: {e}")
+
+            db.stop_source_updating(source_id)
