@@ -1,23 +1,28 @@
 # Бот-интерфейс для общения с клиентом.
 # Позволяет настроить источники, интервал, присылает дайджест
 
+# from scheduler import setup_scheduler
+import asyncio
 import logging
+
 from pyrogram import Client, filters
+from pyrogram.handlers import MessageHandler
+from pyrogram.types import Message
+
+from commands import CommandAlias
 from config import config
 from handlers import register_handlers
-from scheduler import setup_scheduler
-import asyncio
-
-from pyrogram.types import Message
-from pyrogram.handlers import MessageHandler
+from src.db import init_db
+from src.digest import get_digest
 from src.fetchers.telegram_fetcher import check_telegram_sources
-from commands import CommandAlias
 
 # Настройка логирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+
+init_db()
 
 
 async def main():
@@ -44,9 +49,13 @@ async def main():
     register_handlers(bot)
 
     async def proxy_dev_test_handler(client: Client, message: Message):
-        await check_telegram_sources(user_client, client)
+        await check_telegram_sources(user_client, client, message.from_user.id)
+
+    async def get_digest_handler(client: Client, message: Message):
+        await get_digest(user_client, client)
 
     bot.add_handler(MessageHandler(proxy_dev_test_handler, filters.command(CommandAlias.dev_test.value)))
+    bot.add_handler(MessageHandler(get_digest_handler, filters.command(CommandAlias.digest.value)))
 
     # Настраиваем и запускаем планировщик (в отдельной задаче asyncio)
     # await setup_scheduler(user_client, bot)

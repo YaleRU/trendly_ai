@@ -10,6 +10,7 @@ class CommandAlias(enum.Enum):
     source_info = "source_info"
     list_sources = "sources"
 
+    digest = "dg"
     dev_test = "dev_test"
 
 
@@ -22,4 +23,5 @@ class CommandDescription(enum.Enum):
     source_info = "Показывает информацию об источнике по его ID"
     list_sources = "Посмотреть список источников и их ID"
 
+    digest = "Выводит дайджест новостей"
     dev_test = "Команда для тестирования в момент разработки"

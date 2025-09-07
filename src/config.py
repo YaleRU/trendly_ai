@@ -24,6 +24,8 @@ for dirname in [SESSION_DIR_PATH, DATABASE_DIR_PATH]:
         os.makedirs(dirname)
 
 
+# TODO: перейти на pydentic settings
+
 class Config:
     # Telegram API Keys
     API_ID = int(os.getenv("API_ID", 0))
@@ -47,6 +49,7 @@ class Config:
     CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", DEFAULT_CHECK_INTERVAL_MINUTES))
     SEND_DIGEST_INTERVAL_MINUTES = int(os.getenv("SEND_DIGEST_INTERVAL_MINUTES", DEFAULT_SEND_DIGEST_INTERVAL_MINUTES))
     MAX_ARTICLES_PER_DIGEST = int(os.getenv("MAX_ARTICLES_PER_DIGEST", DEFAULT_MAX_ARTICLES_PER_DIGEST))
+    ARTICLES_FOR_FIRST_LOADING = 50
 
     # OpenAI API Key
     # OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -55,6 +58,12 @@ class Config:
     # OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo-1106")
     # OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", 500))
     # OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.7))
+
+    # DSN
+    @property
+    def DSN(self) -> str:
+        path = os.path.join(config.DATABASE_DIR, config.DATABASE_NAME).replace('\\', '/')
+        return f'sqlite:///{path}'
 
 
 config = Config()

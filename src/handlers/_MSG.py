@@ -12,9 +12,8 @@ welcome_text = """
 Для справки нажмите /""" + CommandAlias.help.value
 
 
-def get_welcome_text(user):
-    return (f"Привет, {user.mention}!\n\n"
+def get_welcome_text(mention):
+    return (f"Привет, {mention}!\n\n"
             f"Я бот для создания персональных дайджестов новостей.\n"
             f"Для справки нажмите /{CommandAlias.help.value}.\n"
             f"Добавь источники командой /{CommandAlias.add_source.value}.")
-
