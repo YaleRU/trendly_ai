@@ -7,6 +7,7 @@ from .base_repository import BaseRepository
 from .source_repository import SourceRepository
 from .. import SourceType
 from ..models import User
+import src.utils.date as datetime_util
 
 
 class UserRepository(BaseRepository[User]):
@@ -26,9 +27,8 @@ class UserRepository(BaseRepository[User]):
 
     def get_users_for_digest(self) -> List[User]:
         from sqlalchemy import or_
-        from datetime import datetime
 
-        now = datetime.now()
+        now = datetime_util.get_now_utc()
         return self.db.query(User).filter(
             and_(
                 User.is_active == True,

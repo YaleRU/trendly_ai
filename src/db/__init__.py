@@ -11,7 +11,7 @@ from src.db.base import Base
 logger = logging.getLogger(__name__)
 
 # Создаем движок базы данных
-engine = create_engine(config.DSN, echo=True)
+engine = create_engine(config.DSN)
 
 # Создаем фабрику сессий
 SessionLocal = scoped_session(sessionmaker(

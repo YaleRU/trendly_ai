@@ -30,11 +30,12 @@ class UserService:
 
     def update_digest_interval(self, user_id: int, interval_minutes: int) -> Optional[User]:
         """Обновляет интервал отправки дайджеста"""
+        import src.utils.date as datetime_util
         user = self.user_repo.get(user_id)
 
         if user:
             user.digest_interval = interval_minutes
-            user.next_digest_time = datetime.now() + timedelta(minutes=interval_minutes)
+            user.next_digest_time = datetime_util.get_now_utc() + timedelta(minutes=interval_minutes)
             self.user_repo.update(user)
 
         return user

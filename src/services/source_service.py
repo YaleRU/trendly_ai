@@ -1,6 +1,7 @@
+from datetime import datetime
 import logging
 from contextlib import contextmanager
-from datetime import datetime
+import src.utils.date as datetime_util
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from ..db.repositories import SourceRepository, UserRepository
@@ -89,7 +90,7 @@ class SourceService:
             return False
 
         source.is_updating = False
-        source.last_checked_time = datetime.now()
+        source.last_checked_time = datetime_util.get_now_utc()
         self.db.commit()
 
         status = "успешно" if success else "с ошибкой"
@@ -126,3 +127,13 @@ class SourceService:
             self.stop_update(source, success=False)
             logger.error(f"Ошибка в контексте обновления источника {source.id}: {e}")
             raise
+
+    def update_last_checked(self, source: Source, last_checked_time: datetime,
+                            last_checked_article_id: None | int = None):
+
+        source.last_checked_time = last_checked_time
+
+        if last_checked_article_id:
+            source.last_checked_article_id = last_checked_article_id
+
+        self.db.commit()

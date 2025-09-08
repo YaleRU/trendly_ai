@@ -1,6 +1,6 @@
 import logging
-from datetime import datetime
 from typing import Optional, List
+import src.utils.date as datetime_util
 
 from sqlalchemy.orm import Session
 
@@ -28,6 +28,7 @@ class ArticleService:
             # Обновляем существующую статью
             return False, self._update_existing_article(existing_article, article_data)
 
+        now = datetime_util.get_now_utc()
         # Создаем новую статью
         new_article = Article(
             source_id=source_id,
@@ -36,8 +37,8 @@ class ArticleService:
             title=article_data.get('title'),
             content=article_data.get('content'),
             summary=article_data.get('summary'),
-            published_at=article_data.get('published_at', datetime.now()),
-            processed_at=article_data.get('processed_at', datetime.now())
+            published_at=article_data.get('published_at', now),
+            processed_at=article_data.get('processed_at', now)
         )
 
         self.db.add(new_article)

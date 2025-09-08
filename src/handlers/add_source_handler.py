@@ -109,5 +109,7 @@ async def get_telegram_source_info(user_client: Client, message: Message, input_
         return None
     except Exception as e:
         logger.warning(f"Произошла ошибка при добавлении источника {input_url}: {e}")
-        await message.reply_text("Произошла ошибка при добавлении источника.")
+        await message.reply_text(
+            "Произошла ошибка при добавлении источника.\n" + \
+            f"Возможно, неверный формат URL для Telegram источника: {input_url}!")
         return None

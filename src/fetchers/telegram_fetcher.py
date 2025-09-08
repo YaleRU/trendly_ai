@@ -100,6 +100,8 @@ async def check_telegram_sources(user_client: Client, _bot: Client, user_telegra
                     if added:
                         new_articles_count += 1
                         logger.info(f"Добавлена статья {article}")
+
+                source_service.update_last_checked(source, date_utils.get_now_utc())
                 logger.info(f"Найдено {new_articles_count} новых сообщений в канале {entity.title}")
             except Exception as e:
                 logger.error(f"Ошибка при проверке Telegram-канала {source.target}: {e}")

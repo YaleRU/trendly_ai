@@ -1,8 +1,11 @@
-from typing import Optional
-from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from ..db.repositories import UserRepository
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+import src.utils.date as datetime_util
 from ..db.models import User
+from ..db.repositories import UserRepository
 
 
 class UserService:
@@ -21,7 +24,7 @@ class UserService:
                 username=username,
                 first_name=first_name,
                 last_name=last_name,
-                registered_at=datetime.now()
+                registered_at=datetime_util.get_now_utc()
             )
             self.user_repo.create(user)
 
@@ -33,7 +36,7 @@ class UserService:
 
         if user:
             user.digest_interval = interval_minutes
-            user.next_digest_time = datetime.now() + timedelta(minutes=interval_minutes)
+            user.next_digest_time = datetime_util.get_now_utc() + timedelta(minutes=interval_minutes)
             self.user_repo.update(user)
 
         return user

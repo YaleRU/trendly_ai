@@ -27,14 +27,14 @@ non_command = filters.create(non_command_filter)
 
 
 def register_handlers(bot: Client):
-    logger.info('Starting handlers registration...')
-
-    bot.add_handler(MessageHandler(start_handler, filters.command(CommandAlias.start.value)))
-    bot.add_handler(MessageHandler(help_handler, filters.command(CommandAlias.help.value)))
-    bot.add_handler(MessageHandler(add_source_handler, filters.command(CommandAlias.add_source.value)))
-    bot.add_handler(MessageHandler(list_sources_handler, filters.command(CommandAlias.list_sources.value)))
-    bot.add_handler(MessageHandler(source_info_handler, filters.command(CommandAlias.source_info.value)))
-    bot.add_handler(MessageHandler(remove_source_handler, filters.command(CommandAlias.remove_source.value)))
-    bot.add_handler(MessageHandler(echo_handler, non_command))
-
-    logger.info('Handlers registered!')
+    try:
+        bot.add_handler(MessageHandler(start_handler, filters.command(CommandAlias.start.value)))
+        bot.add_handler(MessageHandler(help_handler, filters.command(CommandAlias.help.value)))
+        bot.add_handler(MessageHandler(add_source_handler, filters.command(CommandAlias.add_source.value)))
+        bot.add_handler(MessageHandler(list_sources_handler, filters.command(CommandAlias.list_sources.value)))
+        bot.add_handler(MessageHandler(source_info_handler, filters.command(CommandAlias.source_info.value)))
+        bot.add_handler(MessageHandler(remove_source_handler, filters.command(CommandAlias.remove_source.value)))
+        bot.add_handler(MessageHandler(echo_handler, non_command))
+        logger.info('Обработчики команд бота зарегистрированы!')
+    except Exception as e:
+        logger.error(f'Ошибка регистрации обработчиков команд бота! {e}')
