@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .association_tables import user_source_association
 from ..base import Base
+from ..models.source import SourceType
 
 
 class User(Base):
@@ -37,3 +38,6 @@ class User(Base):
 
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username})>"
+
+    def get_sources_by_type(self, source_type: SourceType) -> List['Source']:
+        return [s for s in self.sources if s.type == source_type]

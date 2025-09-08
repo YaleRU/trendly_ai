@@ -1,13 +1,16 @@
 import logging
-from pyrogram import Client
-from pyrogram.types import Message
-from pyrogram.errors import ChannelInvalid, ChannelPrivate, UsernameNotOccupied
 
-from src.utils import date as date_utils
+from pyrogram import Client
+from pyrogram.errors import UsernameNotOccupied, ChannelPrivate, ChannelInvalid
+from pyrogram.types import Message
+
 from src.config import config
 from src.db import SessionLocal, SourceType
-from src.db.repositories import SourceRepository, UserRepository
+from src.db.repositories import UserRepository
+from src.db.repositories.article_repository import ArticleRepository
+from src.services.ArticleService import ArticleService
 from src.services.source_service import SourceService
+from src.utils import date as date_utils
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +23,7 @@ async def check_telegram_sources(user_client: Client, _bot: Client, user_telegra
         logger.warning("Не найден пользователь!")
 
     source_service = SourceService(SessionLocal())
-    user_active_sources = SourceRepository(SessionLocal()).get_active_sources_by_type(user, SourceType.Telegram)
+    user_active_sources = user.get_sources_by_type(SourceType.Telegram)
 
     if not user_active_sources:
         return
@@ -32,10 +35,17 @@ async def check_telegram_sources(user_client: Client, _bot: Client, user_telegra
             continue
 
         with source_service.update_context(source):
-            return
             try:
-                # Получаем entity (канал/чат)
-                entity = await user_client.get_chat(source.target)
+                try:
+                    # Получаем entity (канал/чат)
+                    entity = await user_client.get_chat(source.target)
+                except Exception as e:
+                    # Если ошибка связана с правами доступа
+                    if isinstance(e, (ChannelInvalid, ChannelPrivate, UsernameNotOccupied)) or "FORBIDDEN" in str(
+                            e) or "права" in str(e).lower():
+                        await notify_user_about_forbidden_chanel(source.target, e)
+                    else:
+                        raise e
 
                 # Определяем время последней проверки(ОНА УЖЕ В UTC!) и статью
                 is_first_loading = source.last_checked_time is None
@@ -64,6 +74,11 @@ async def check_telegram_sources(user_client: Client, _bot: Client, user_telegra
 
                 for message in messages:
 
+                    if ArticleRepository(SessionLocal()).get_by_source_and_external_id(source.id, message.id):
+                        logger.warning(
+                            f"Статья {message.text[:50]}(id={message.id}) у истоника {source.target} уже есть в БД!")
+                        continue
+
                     # Формируем URL к сообщению
                     if entity.username:
                         message_url = f"https://t.me/{entity.username}/{message.id}"
@@ -71,31 +86,23 @@ async def check_telegram_sources(user_client: Client, _bot: Client, user_telegra
                         message_url = f"tg://openmessage?chat_id={entity.id}&message_id={message.id}"
 
                     message_date = date_utils.to_utc(message.date)
-                    article_data = {
-                        'source_id': source.id,
+
+                    (added, article) = ArticleService(SessionLocal()).add_article_to_source(source.id, {
                         'id_in_source': str(message.id),
                         'url': message_url,
                         'title': message.text[:100] + "..." if len(message.text) > 100 else message.text,
                         'content': message.text,
+                        'summary': message.text,
                         'published_at': message_date,
-                    }
+                        'processed_at': date_utils.get_now_utc(),
+                    })
 
-                    # Сохраняем статью и обновляем время проверки
-                    added_article_id = db.add_article(article_data)
-                    if added_article_id is not None:
+                    if added:
                         new_articles_count += 1
-                        db.update_source_last_checked(source.id, added_article_id, message_date)
-
-                db.update_source_last_checked(source.id, last_checked_time=date_utils.get_now_utc())
-
+                        logger.info(f"Добавлена статья {article}")
                 logger.info(f"Найдено {new_articles_count} новых сообщений в канале {entity.title}")
             except Exception as e:
-                # Если ошибка связана с правами доступа
-                if isinstance(e, (ChannelInvalid, ChannelPrivate, UsernameNotOccupied)) or "FORBIDDEN" in str(
-                        e) or "права" in str(e).lower():
-                    await notify_user_about_forbidden_chanel(source.target, e)
-                else:
-                    logger.error(f"Ошибка при проверке Telegram-канала {source.target}: {e}")
+                logger.error(f"Ошибка при проверке Telegram-канала {source.target}: {e}")
 
 
 async def notify_user_about_forbidden_chanel(target, e):

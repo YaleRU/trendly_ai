@@ -1,13 +1,12 @@
 from typing import List, Optional, Dict
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
 
+from sqlalchemy import and_
+from sqlalchemy.orm import Session
+
+from .base_repository import BaseRepository
+from .source_repository import SourceRepository
 from .. import SourceType
 from ..models import User
-from .base_repository import BaseRepository
-from sqlalchemy.orm import Session
-from sqlalchemy import select, func
-from ..models import User, Source
 
 
 class UserRepository(BaseRepository[User]):
@@ -43,7 +42,13 @@ class UserRepository(BaseRepository[User]):
     @staticmethod
     def get_sources_by_type(user: User) -> Dict[SourceType, List['Source']]:
         return {
-            SourceType.Telegram: [s for s in user.sources if s.type == SourceType.Telegram],
-            SourceType.RSS: [s for s in user.sources if s.type == SourceType.RSS],
-            SourceType.WEB: [s for s in user.sources if s.type == SourceType.WEB]
+            SourceType.Telegram: SourceRepository.get_sources_by_type(
+                user.sources, SourceType.Telegram
+            ),
+            SourceType.RSS: SourceRepository.get_sources_by_type(
+                user.sources, SourceType.RSS
+            ),
+            SourceType.WEB: SourceRepository.get_sources_by_type(
+                user.sources, SourceType.WEB
+            )
         }

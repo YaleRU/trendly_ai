@@ -57,6 +57,7 @@ async def source_info_handler(_client: Client, message: Message):
             f"<b>ID:</b> {source.id}\n"
             f"<b>Тип:</b> {source.type.value}\n"
             f"<b>URL:</b> {source.target}\n"
+            # TODO: Всё с датами нужно проверить, не понятно где UTC, где что
             f"<b>Последняя проверка:</b> {get_formated_last_check()}\n\n"
             f"<b>Всего статей:</b> {len(source.articles)}\n"
             f"<b>Последняя добавленная статья:</b> {source.last_checked_article_id or 'Ничего не добавлялось'}\n\n"

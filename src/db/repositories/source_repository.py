@@ -1,6 +1,5 @@
 from typing import Optional, List
 
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from .base_repository import BaseRepository
@@ -28,6 +27,7 @@ class SourceRepository(BaseRepository[Source]):
             Source.type == source_type
         ).all()
 
+    # TODO: Возможно удалить
     def get_active_sources_by_type(self, user: User | None, source_type: SourceType | None) -> List[Source]:
         """Получает все источники определенного типа, которые есть у пользователей"""
         stmt = self.db.query(Source).distinct().join(Source.users)
@@ -78,3 +78,7 @@ class SourceRepository(BaseRepository[Source]):
             return True
 
         return False
+
+    @staticmethod
+    def get_sources_by_type(sources: List['Source'], source_type: SourceType) -> List['Source']:
+        return [s for s in sources if s.type == source_type]
