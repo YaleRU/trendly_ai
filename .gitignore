@@ -7,5 +7,7 @@
 venv/
 ENV/
 
-# Logs
-src/bot.session
+# private app data
+session/*
+database/*
+
