@@ -14,11 +14,24 @@ from src.utils import date as date_utils
 
 logger = logging.getLogger(__name__)
 
+from sqlalchemy.orm import joinedload
+from src.db.models import User, Source, SourceType
 
-async def check_telegram_sources(user_client: Client, _bot: Client, user_telegram_ids: list[int]):
+def _get_telegram_sources_for_users(db, user_ids):
+    users = db.query(User).options(joinedload(User.sources)).filter(User.id.in_(user_ids)).all()
+    sources = []
+    for u in users:
+        for src in u.sources:
+            if getattr(src, 'type', None) == SourceType.Telegram:
+                sources.append(src)
+    return sources
+
+
+
+async def check_telegram_sources(user_client: Client, _bot: Client, user_ids: list[int]):
     """Проверяет Telegram-каналы на наличие новых сообщений"""
     source_service = SourceService(SessionLocal())
-    users_sources = source_service.get_sources_for_users(user_telegram_ids, SourceType.Telegram)
+    users_sources = _get_telegram_sources_for_users(db, user_ids)
 
     if not users_sources:
         return

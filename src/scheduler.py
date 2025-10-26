@@ -1,56 +1,77 @@
-from datetime import timezone, datetime, timedelta
+from datetime import timedelta
+import logging
+from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from apscheduler.triggers.date import DateTrigger
 from pyrogram import Client
-import logging
 
 from config import config
-from src.utils.date import get_formatted_datestr, to_local
 from src.db import SessionLocal
+from src.db.models import User
 from src.fetchers import check_all_sources
-
-# from utils import send_digests
 from src.services.digest_service import DigestService
-from src.db.repositories import UserRepository
 
 logger = logging.getLogger(__name__)
-scheduler = AsyncIOScheduler()
 
 
-async def task(user_client: Client, bot_client: Client, reschedule: bool = True):
-    logger.info('Сработала регулярная таска дайджеста!')
-    digest_service = DigestService(SessionLocal())
-    users_telegram_ids = [u.telegram_id for u in digest_service.get_inspired_users()]
-    if len(users_telegram_ids) != 0:
-        await check_all_sources(user_client, bot_client, users_telegram_ids)
-        await digest_service.send_digest(bot_client)
+class Scheduler:
+    def __init__(self, bot: Client, user_client: Client):
+        self.bot = bot
+        self.user_client = user_client
+        self.scheduler = AsyncIOScheduler(timezone="UTC")  # работаем в UTC
 
-    if reschedule:
-        await setup_scheduler(user_client, bot_client)
+    def _get_active_user_ids(self) -> List[int]:
+        db = SessionLocal()
+        try:
+            users = db.query(User).filter(User.is_active == True).all()  # noqa: E712
+            return [u.id for u in users]
+        finally:
+            db.close()
+
+    async def _tick_check_sources(self):
+        user_ids = self._get_active_user_ids()
+        try:
+            await check_all_sources(self.user_client, self.bot, user_ids)
+        except Exception as e:
+            logger.exception("check_all_sources failed: %s", e)
+
+    async def _tick_send_digests(self):
+        db = SessionLocal()
+        try:
+            service = DigestService(db)
+            await service.send_digest(self.bot)
+        except Exception as e:
+            logger.exception("send_digest tick failed: %s", e)
+        finally:
+            db.close()
+
+    def start(self):
+        # проверка источников с заданным интервалом
+        self.scheduler.add_job(
+            self._tick_check_sources,
+            trigger=IntervalTrigger(minutes=getattr(config, 'CHECK_NEWS_INTERVAL_MINUTES', 5)),
+            id="check_news",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        # отправка дайджестов раз в минуту
+        self.scheduler.add_job(
+            self._tick_send_digests,
+            trigger=IntervalTrigger(minutes=1),
+            id="send_digests",
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+        )
+        self.scheduler.start()
+        logger.info("Планировщик запущен: check_news=%s мин, send_digests=1 мин",
+                    getattr(config, 'CHECK_NEWS_INTERVAL_MINUTES', 5))
 
 
-async def setup_scheduler(user_client: Client, bot_client: Client):
-    db = SessionLocal()
-    if DigestService(db).has_inspired_users():
-        await task(user_client, bot_client, False)
-
-    user = UserRepository(db).get_user_with_earliest_digest()
-    next_task_time = user.last_digest_time
-
-    scheduler.add_job(
-        task,
-        trigger=DateTrigger(run_date=next_task_time, timezone=timezone.utc),
-        args=[user_client, bot_client],
-        id="check_news",
-        replace_existing=True
-    )
-    logger.info(f"Запланирована таска, время срабатывания {get_formatted_datestr(to_local(next_task_time))}")
-
-    if not scheduler.running:
-        scheduler.start()
-        logger.info("Планировщик запущен!")
-
-    # Возвращаем объект планировщика для возможной остановки в будущем
-    return scheduler
+async def setup_scheduler(bot: Client, user_client: Client):
+    """Back-compat wrapper. Creates and starts Scheduler. Returns the APScheduler instance."""
+    sch = Scheduler(bot, user_client)
+    sch.start()
+    return None
