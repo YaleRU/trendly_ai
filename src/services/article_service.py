@@ -18,7 +18,7 @@ class ArticleService:
         self.article_repo = ArticleRepository(db)
 
     def add_article_to_source(self, source_id: int, article_data: dict) -> tuple[bool, Optional[Article]]:
-        """Добавляет статью к источнику с проверкой дубликатов"""
+        """Добавляет статью к источнику и возвращает (создано, статья)."""
         # Проверяем, нет ли уже статьи с таким id_in_source для этого источника
         existing_article = self.article_repo.get_by_source_and_external_id(
             source_id, article_data['id_in_source']
@@ -45,10 +45,6 @@ class ArticleService:
         self.db.commit()
         self.db.refresh(new_article)
 
-        new_article.source.last_checked_article_id = new_article.id
-        new_article.source.last_checked_time = new_article.processed_at
-        self.db.commit()
-
         return True, new_article
 
     def _update_existing_article(self, article: Article, article_data: dict) -> Article:
@@ -71,8 +67,8 @@ class ArticleService:
 
         for article_data in articles_data:
             try:
-                article = self.add_article_to_source(source_id, article_data)
-                if article:
+                created, _ = self.add_article_to_source(source_id, article_data)
+                if created:
                     added_count += 1
             except Exception as e:
                 logger.error(f"Ошибка при добавлении статьи: {e}")
