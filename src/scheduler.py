@@ -47,10 +47,11 @@ class Scheduler:
             db.close()
 
     def start(self):
+
         # проверка источников с заданным интервалом
         self.scheduler.add_job(
             self._tick_check_sources,
-            trigger=IntervalTrigger(minutes=getattr(config, 'CHECK_NEWS_INTERVAL_MINUTES', 5)),
+            trigger=IntervalTrigger(seconds=config.CHECK_NEWS_INTERVAL_SECONDS),
             id="check_news",
             replace_existing=True,
             coalesce=True,
@@ -59,15 +60,15 @@ class Scheduler:
         # отправка дайджестов раз в минуту
         self.scheduler.add_job(
             self._tick_send_digests,
-            trigger=IntervalTrigger(minutes=1),
+            trigger=IntervalTrigger(seconds=config.SEND_NEWS_INTERVAL_SECONDS),
             id="send_digests",
             replace_existing=True,
             coalesce=True,
             max_instances=1,
         )
         self.scheduler.start()
-        logger.info("Планировщик запущен: check_news=%s мин, send_digests=1 мин",
-                    getattr(config, 'CHECK_NEWS_INTERVAL_MINUTES', 5))
+        logger.info("Планировщик запущен: check_news=%s сек, send_digests=%s сек",
+                    config.CHECK_NEWS_INTERVAL_SECONDS, config.SEND_NEWS_INTERVAL_SECONDS)
 
 
 async def setup_scheduler(bot: Client, user_client: Client):

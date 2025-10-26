@@ -59,8 +59,8 @@ class Config:
         path = os.path.join(config.DATABASE_DIR, config.DATABASE_NAME).replace('\\', '/')
         return f'sqlite:///{path}'
 
+    CHECK_NEWS_INTERVAL_SECONDS = int(os.getenv('CHECK_NEWS_INTERVAL_SECONDS', 5 * 60))  # секунды
+    SEND_NEWS_INTERVAL_SECONDS = int(os.getenv('SEND_NEWS_INTERVAL_SECONDS', 1 * 60))  # секунды
 
-
-    CHECK_NEWS_INTERVAL_MINUTES = int(os.getenv('CHECK_NEWS_INTERVAL_MINUTES', 5))  # минуты
 
 config = Config()
