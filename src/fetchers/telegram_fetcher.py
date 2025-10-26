@@ -93,8 +93,8 @@ async def check_telegram_sources(user_client: Client, bot: Client, user_ids: Lis
                             "processed_at": date_utils.get_now_utc(),
                         }
 
-                        article = article_service.add_article_to_source(src.id, data)
-                        if article:
+                        created, _ = article_service.add_article_to_source(src.id, data)
+                        if created:
                             new_count += 1
 
                     source_service.update_last_checked(src, date_utils.get_now_utc())
