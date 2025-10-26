@@ -3,6 +3,9 @@ from datetime import datetime, timezone, timedelta
 # Формат, в котором дата хранится в БД
 DB_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
+# Объект часового пояса UTC, используемый по всему проекту
+UTC = timezone.utc
+
 
 def get_smallest_utc() -> datetime:
     return as_utc(datetime.fromtimestamp(0))
