@@ -28,24 +28,26 @@ class UserRepository(BaseRepository[User]):
         return self.db.query(User).filter(User.is_active == True).all()
 
     def get_user_with_earliest_digest(self) -> Optional[User]:
+        """Возвращает активного пользователя с ближайшим временем следующего дайджеста.
+        Dialect-agnostic: вычисление на Python, без SQL make_interval.
         """
-        Находит пользователя с наименьшим значением last_digest_time + interval
-        Приоритет отдается пользователям, у которых last_digest_time is NULL
-        """
-        # Вычисляем следующее время дайджеста для каждого пользователя
-        # Для пользователей без last_digest_time используем очень старое время
-        base_time = datetime(1970, 1, 1)  # или datetime.min
+        users = (
+            self.db.query(User)
+            .filter(User.is_active == True)  # noqa: E712
+            .all()
+        )
+        if not users:
+            return None
 
-        # Создаем выражение для вычисления next_digest_time
-        next_digest_time = User.last_digest_time + func.make_interval(mins=User.digest_interval)
+        def next_time(u: User):
+            base = u.last_digest_time or datetime_util.get_now_utc()
+            try:
+                mins = int(getattr(u, "digest_interval", 60) or 60)
+            except Exception:
+                mins = 60
+            return base + timedelta(minutes=mins)
 
-        # Ищем пользователя с наименьшим next_digest_time
-        user = self.db.query(User). \
-            filter(User.is_active == True). \
-            order_by(next_digest_time). \
-            first()
-
-        return user
+        return min(users, key=next_time)
 
     def get_users_for_digest(self) -> List[User]:
         from sqlalchemy import or_
