@@ -5,7 +5,6 @@ from collections import defaultdict
 from datetime import timedelta
 from typing import Dict, List, Optional
 
-from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from src.db.models import User, Article, Source, user_source_association
@@ -17,10 +16,14 @@ logger = logging.getLogger(__name__)
 
 class DigestService:
     """Сервис для генерации дайджестов новостей"""
+
     def __init__(self, db: Session):
         self.db = db
 
-    # --- Users ---
+    # Совместимость со старым кодом
+    def has_inspired_users(self) -> bool:
+        return len(self.get_active_users_due()) > 0
+
     def get_active_users_due(self) -> List[User]:
         now = date_utils.get_now_utc()
         return (
@@ -106,3 +109,7 @@ class DigestService:
 
         msg = "\n\n".join(parts)
         return (msg[:4000] + "…") if len(msg) > 4000 else msg
+
+    # Совместимость со старым кодом
+    def get_inspired_users(self):
+        return self.get_active_users_due()
