@@ -15,16 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class DigestService:
-    """Сервис для генерации дайджестов новостей"""
-
     def __init__(self, db: Session):
         self.db = db
 
-    # Совместимость со старым кодом
     def get_inspired_users(self) -> list[User]:
         return self.get_active_users_due()
 
-    # Совместимость со старым кодом
     def has_inspired_users(self) -> bool:
         return len(self.get_active_users_due()) > 0
 
@@ -47,9 +43,7 @@ class DigestService:
         user.next_digest_time = now + timedelta(minutes=interval_min)
         self.db.commit()
 
-    # --- Articles ---
     def get_user_articles(self, user_id: int, hours: int = 24) -> List[Article]:
-        """Статьи пользователя за указанное окно."""
         since = date_utils.get_now_utc() - timedelta(hours=hours)
         q = (
             self.db.query(Article)
@@ -64,7 +58,6 @@ class DigestService:
         return q.all()
 
     async def ensure_summaries(self, articles: List[Article]) -> None:
-        """Сгенерировать summary там, где пусто. Тихий фейл на ошибках."""
         changed = False
         for a in articles:
             if not a.summary and (a.content or a.title):
@@ -80,7 +73,6 @@ class DigestService:
     def group_by_source(self, articles: List[Article]) -> Dict[Source, List[Article]]:
         grouped: Dict[Source, List[Article]] = defaultdict(list)
         for a in articles:
-            # Ensure relationship is loaded. In case not, fetch Source by id.
             src = getattr(a, "source", None)
             if src is None:
                 src = self.db.query(Source).get(a.source_id)  # type: ignore[call-arg]
@@ -88,14 +80,12 @@ class DigestService:
         return dict(grouped)
 
     async def generate_digest(self, user_id: int, hours: int = 24, per_source_limit: int = 8) -> Optional[str]:
-        """Возвращает готовый HTML дайджест или None, если статей нет."""
         articles = self.get_user_articles(user_id, hours)
         if not articles:
             return None
         await self.ensure_summaries(articles)
 
         grouped = self.group_by_source(articles)
-
         parts: List[str] = [f"📰 <b>Ваш дайджест за {hours}ч</b>"]
         for source, items in grouped.items():
             title = source.title or source.target  # type: ignore[attr-defined]
@@ -110,6 +100,16 @@ class DigestService:
             extra = max(0, len(items) - per_source_limit)
             if extra:
                 parts.append(f"…и ещё {extra}")
-
         msg = "\n\n".join(parts)
         return (msg[:4000] + "…") if len(msg) > 4000 else msg
+
+    async def send_digest(self, bot_client):
+        """Отправить дайджест всем пользователям, у кого наступило время."""
+        # Импорт внутри, чтобы избежать циклов
+        from src.utils.digest_sender import send_digest_to_user
+        users = self.get_active_users_due()
+        for user in users:
+            try:
+                await send_digest_to_user(bot_client, self.db, user.id, user.chat_id)  # type: ignore[attr-defined]
+            except Exception as e:
+                logger.error("send_digest failed for user %s: %s", getattr(user, "id", None), e)
