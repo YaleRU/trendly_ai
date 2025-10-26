@@ -1,5 +1,2 @@
-pyrogram
-tgcrypto
+telethon
 python-dotenv
-apscheduler
-sqlalchemy
