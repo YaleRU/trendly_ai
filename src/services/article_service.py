@@ -45,10 +45,6 @@ class ArticleService:
         self.db.commit()
         self.db.refresh(new_article)
 
-        new_article.source.last_checked_article_id = new_article.id
-        new_article.source.last_checked_time = new_article.processed_at
-        self.db.commit()
-
         return True, new_article
 
     def _update_existing_article(self, article: Article, article_data: dict) -> Article:

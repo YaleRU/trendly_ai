@@ -62,6 +62,9 @@ async def check_telegram_sources(user_client: Client, bot: Client, user_ids: Lis
                 continue
 
             new_count = 0
+            latest_article_id: Optional[int] = None
+            latest_article_processed_at = None
+            latest_external_id: Optional[int] = None
             try:
                 with source_service.update_context(src):
                     last_id = src.last_checked_article.id_in_source if src.last_checked_article else None  # type: ignore[attr-defined]
@@ -93,11 +96,21 @@ async def check_telegram_sources(user_client: Client, bot: Client, user_ids: Lis
                             "processed_at": date_utils.get_now_utc(),
                         }
 
-                        created, _ = article_service.add_article_to_source(src.id, data)
+                        created, article = article_service.add_article_to_source(src.id, data)
+                        if article:
+                            message_id = int(m.id)
+                            if latest_external_id is None or message_id > latest_external_id:
+                                latest_external_id = message_id
+                                latest_article_id = article.id
+                                latest_article_processed_at = getattr(article, "processed_at", None)
                         if created:
                             new_count += 1
 
-                    source_service.update_last_checked(src, date_utils.get_now_utc())
+                    if latest_article_id is not None:
+                        processed_at = latest_article_processed_at or date_utils.get_now_utc()
+                        source_service.update_last_checked(src, processed_at, latest_article_id)
+                    else:
+                        source_service.update_last_checked(src, date_utils.get_now_utc())
                 if new_count:
                     logger.info("Канал %s: добавлено %d сообщений.", norm, new_count)
                 else:

@@ -133,7 +133,7 @@ class SourceService:
 
         source.last_checked_time = last_checked_time
 
-        if last_checked_article_id:
+        if last_checked_article_id is not None:
             source.last_checked_article_id = last_checked_article_id
 
         self.db.commit()
