@@ -4,14 +4,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_CHECK_INTERVAL_MINUTES = 5
-DEFAULT_SEND_DIGEST_INTERVAL_MINUTES = 10
-DEFAULT_MAX_ARTICLES_PER_DIGEST = 10
-
-# ВНИМАНИЕ! ПРИВАТНАЯ ИНФОРМАЦИЯ! Обновляя здесь необходимо обновить .gitignore
+# ВНИМАНИЕ! В ЭТИХ ПАПКАХ ПРИВАТНАЯ ИНФОРМАЦИЯ! Обновляя здесь необходимо обновить .gitignore
 SESSION_DIR_NAME = "session"
 DATABASE_DIR_NAME = "database"
-# ВНИМАНИЕ! ПРИВАТНАЯ ИНФОРМАЦИЯ! Обновляя здесь необходимо обновить .gitignore
+# ВНИМАНИЕ! В ЭТИХ ПАПКАХ ПРИВАТНАЯ ИНФОРМАЦИЯ! Обновляя здесь необходимо обновить .gitignore
 
 
 # Перенаправляем сессию и базу данных в соответствующие папки
@@ -46,9 +42,7 @@ class Config:
     DATABASE_NAME = os.getenv("DATABASE_NAME")
 
     # Пользовательские настройки (в будущем)
-    CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", DEFAULT_CHECK_INTERVAL_MINUTES))
-    SEND_DIGEST_INTERVAL_MINUTES = int(os.getenv("SEND_DIGEST_INTERVAL_MINUTES", DEFAULT_SEND_DIGEST_INTERVAL_MINUTES))
-    MAX_ARTICLES_PER_DIGEST = int(os.getenv("MAX_ARTICLES_PER_DIGEST", DEFAULT_MAX_ARTICLES_PER_DIGEST))
+    DEFAULT_SEND_DIGEST_INTERVAL_MINUTES = 10
     ARTICLES_FOR_FIRST_LOADING = 50
 
     # OpenAI API Key

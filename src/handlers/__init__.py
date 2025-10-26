@@ -10,6 +10,7 @@ from .add_source_handler import add_source_handler
 from .list_sources_handler import list_sources_handler
 from .source_info_handler import source_info_handler
 from .remove_source_handler import remove_source_handler
+from .digest_handler import digest_handler
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,8 @@ def register_handlers(bot: Client):
         bot.add_handler(MessageHandler(list_sources_handler, filters.command(CommandAlias.list_sources.value)))
         bot.add_handler(MessageHandler(source_info_handler, filters.command(CommandAlias.source_info.value)))
         bot.add_handler(MessageHandler(remove_source_handler, filters.command(CommandAlias.remove_source.value)))
+        bot.add_handler(
+            MessageHandler(digest_handler, filters.command(CommandAlias.digest.value) & filters.private))
         bot.add_handler(MessageHandler(echo_handler, non_command))
         logger.info('Обработчики команд бота зарегистрированы!')
     except Exception as e:

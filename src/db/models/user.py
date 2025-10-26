@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from sqlalchemy import String, DateTime, func, UniqueConstraint
@@ -6,6 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .association_tables import user_source_association
 from ..base import Base
+from src.config import config
+import src.utils.date as date_utils
 from ..models.source import SourceType
 
 
@@ -19,9 +21,10 @@ class User(Base):
     registered_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     # Настройки дайджеста
-    digest_interval: Mapped[int] = mapped_column(default=2)  # в минутах
-    next_digest_time: Mapped[Optional[datetime]]
-    last_digest_time: Mapped[Optional[datetime]]
+    digest_interval: Mapped[int] = mapped_column(default=config.DEFAULT_SEND_DIGEST_INTERVAL_MINUTES)  # в минутах
+    last_digest_time: Mapped[datetime] = mapped_column(default=date_utils.get_smallest_utc())
+    next_digest_time: Mapped[datetime] = mapped_column(
+        default=date_utils.get_smallest_utc() + timedelta(minutes=config.DEFAULT_SEND_DIGEST_INTERVAL_MINUTES))
     is_active: Mapped[bool] = mapped_column(default=True)
 
     # Связи

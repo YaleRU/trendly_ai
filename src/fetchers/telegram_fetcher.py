@@ -8,27 +8,22 @@ from src.config import config
 from src.db import SessionLocal, SourceType
 from src.db.repositories import UserRepository
 from src.db.repositories.article_repository import ArticleRepository
-from src.services.ArticleService import ArticleService
+from src.services.article_service import ArticleService
 from src.services.source_service import SourceService
 from src.utils import date as date_utils
 
 logger = logging.getLogger(__name__)
 
 
-async def check_telegram_sources(user_client: Client, _bot: Client, user_telegram_id: int):
+async def check_telegram_sources(user_client: Client, _bot: Client, user_telegram_ids: list[int]):
     """Проверяет Telegram-каналы на наличие новых сообщений"""
-    user = UserRepository(SessionLocal()).get_by_telegram_id(user_telegram_id)
-
-    if not user:
-        logger.warning("Не найден пользователь!")
-
     source_service = SourceService(SessionLocal())
-    user_active_sources = user.get_sources_by_type(SourceType.Telegram)
+    users_sources = source_service.get_sources_for_users(user_telegram_ids, SourceType.Telegram)
 
-    if not user_active_sources:
+    if not users_sources:
         return
 
-    for source in user_active_sources:
+    for source in users_sources:
 
         # Пропускаем источники, которые уже в процессе обновления
         if source.is_updating:

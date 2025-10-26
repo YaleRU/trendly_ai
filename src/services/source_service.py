@@ -3,7 +3,7 @@ import logging
 from contextlib import contextmanager
 import src.utils.date as datetime_util
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from ..db.repositories import SourceRepository, UserRepository
 from ..db.models import Source, SourceType, User
 
@@ -137,3 +137,16 @@ class SourceService:
             source.last_checked_article_id = last_checked_article_id
 
         self.db.commit()
+
+    def get_sources_for_users(self, user_ids: List[int], source_type: SourceType | None = None) -> List[Source]:
+        """Получает все источники указанных пользователей (активных)"""
+        stmt = self.db.query(Source).distinct().join(Source.users). \
+            filter(
+            User.id.in_(user_ids),
+            User.is_active == True
+        )
+
+        if source_type:
+            stmt = stmt.filter(Source.type == source_type)
+
+        return stmt.options(joinedload(Source.users)).all()
