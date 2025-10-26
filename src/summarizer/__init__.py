@@ -1,10 +1,9 @@
 import os
 import asyncio
-from typing import Optional
-
 from .prompt import prompt as _PROMPT
 
 _client = None
+
 
 def _get_client():
     global _client
@@ -14,11 +13,13 @@ def _get_client():
         _client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     return _client
 
+
 def _mk_prompt(text: str) -> str:
     text = (text or "").strip()
     if len(text) > 8000:
         text = text[:8000]
     return _PROMPT.replace("{текст новости}", text)
+
 
 async def summarize_text(article_text: str) -> str:
     """

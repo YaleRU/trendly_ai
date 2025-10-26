@@ -60,4 +60,7 @@ class Config:
         return f'sqlite:///{path}'
 
 
+
+    CHECK_NEWS_INTERVAL_MINUTES = int(os.getenv('CHECK_NEWS_INTERVAL_MINUTES', 5))  # минуты
+
 config = Config()

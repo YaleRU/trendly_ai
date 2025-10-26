@@ -21,6 +21,10 @@ class DigestService:
         self.db = db
 
     # Совместимость со старым кодом
+    def get_inspired_users(self) -> list[User]:
+        return self.get_active_users_due()
+
+    # Совместимость со старым кодом
     def has_inspired_users(self) -> bool:
         return len(self.get_active_users_due()) > 0
 
@@ -109,7 +113,3 @@ class DigestService:
 
         msg = "\n\n".join(parts)
         return (msg[:4000] + "…") if len(msg) > 4000 else msg
-
-    # Совместимость со старым кодом
-    def get_inspired_users(self):
-        return self.get_active_users_due()

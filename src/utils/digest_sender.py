@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+from typing import Dict
 
 from pyrogram import Client
 from pyrogram.enums import ParseMode
@@ -21,12 +21,7 @@ async def send_digest_to_user(bot_client: Client, db: Session, user_id: int, cha
             logger.info("Нет статей для пользователя %s", user_id)
             return False
 
-        await bot_client.send_message(
-            chat_id=chat_id,
-            text=digest_text,
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-        )
+        await bot_client.send_message(chat_id, digest_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
         # Передвинем next_digest_time
         user = db.query(User).get(user_id)  # type: ignore[call-arg]
@@ -35,8 +30,8 @@ async def send_digest_to_user(bot_client: Client, db: Session, user_id: int, cha
 
         logger.info("Дайджест отправлен пользователю %s", user_id)
         return True
-    except Exception as e:
-        logger.exception("send_digest_to_user failed: %s", e)
+    except Exception:
+        logger.exception("send_digest_to_user failed")
         return False
 
 
@@ -58,8 +53,7 @@ async def send_digest_to_all_users(bot_client: Client, db: Session) -> Dict[str,
                 results["success"] += 1
             else:
                 results["no_articles"] += 1
-        except Exception as e:
-            logger.error("Ошибка при отправке дайджеста пользователю %s: %s", getattr(user, "id", None), e)
+        except Exception:
+            logger.exception("digest to user failed")
             results["failed"] += 1
-
     return results
