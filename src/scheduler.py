@@ -6,7 +6,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from pyrogram import Client
 
-from config import config
+from src.config import config
 from src.db import SessionLocal
 from src.db.models import User
 from src.fetchers import check_all_sources
